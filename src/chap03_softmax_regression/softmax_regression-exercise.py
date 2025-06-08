@@ -162,11 +162,12 @@ x = np.array(list(zip(x1, x2)), dtype=np.float32)
 y = np.array(y, dtype=np.int32)  
 # 从混合数据集 data_set 中提取特征和标签，并转换为所需的数据类型
 
+# 执行1000次迭代的模型训练
 for i in range(1000):
     loss, accuracy = train_one_step(model, opt, x, y)
     if i % 50 == 49:
         print(f"loss: {loss.numpy():.4}\t accuracy: {accuracy.numpy():.4}")
-# 执行 1000 次迭代的模型训练，并每隔 50 步打印损失和准确率
+# 每50次迭代打印一次训练进度
 
 # # 结果展示，无需填写代码
 
@@ -191,7 +192,7 @@ print(inp.shape)
 Z = model(inp)
 # 获取预测的类别
 Z = np.argmax(Z, axis=1)
-# 重塑为网络形状
+# 重塑为网格形状
 Z = Z.reshape(X.shape)
 # 绘制决策边界
 plt.contour(X, Y, Z, alpha=0.5)
