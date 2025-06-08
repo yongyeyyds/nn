@@ -271,9 +271,12 @@ def train(model, optimizer, seqlen):
         batched_examples, enc_x, dec_x, y = get_batch(32, seqlen)
         loss = train_one_step(model, optimizer, enc_x, dec_x, y)
         
-        # 每500步打印一次损失
+        # 每500步计算并打印准确率
         if step % 500 == 0:
-            print('step', step, ': loss', loss.numpy())
+            logits = model(enc_x, dec_x)
+            preds = tf.argmax(logits, axis=-1)
+            acc = tf.reduce_mean(tf.cast(tf.equal(preds, y), tf.float32))
+            print(f'step {step}: loss={loss.numpy():.4f}, acc={acc.numpy():.4f}')
     
     return loss
 
@@ -346,9 +349,10 @@ def is_reverse(seq, rev_seq):
     else:
         return False
 
-print([is_reverse(*item) for item in list(zip(*sequence_reversal()))])
-print(list(zip(*sequence_reversal())))
-
-
-# In[ ]:
-
+# 测试模型的序列逆置能力
+results = sequence_reversal()
+accuracy = sum([is_reverse(*item) for item in zip(*results)]) / len(results[0])
+print(f"测试准确率: {accuracy:.2%}")
+print("部分测试结果示例:")
+for original, reversed in list(zip(*results))[:5]:
+    print(f"原始: {original} -> 预测逆置: {reversed} -> 实际逆置: {''.join(reversed(original))}")
