@@ -349,10 +349,3 @@ def is_reverse(seq, rev_seq):
     else:
         return False
 
-# 测试模型的序列逆置能力
-results = sequence_reversal()
-accuracy = sum([is_reverse(*item) for item in zip(*results)]) / len(results[0])
-print(f"测试准确率: {accuracy:.2%}")
-print("部分测试结果示例:")
-for original, reversed in list(zip(*results))[:5]:
-    print(f"原始: {original} -> 预测逆置: {reversed} -> 实际逆置: {''.join(reversed(original))}")

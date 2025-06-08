@@ -510,6 +510,8 @@ class HUD(object):
 class CollisionSensor(object):
     """碰撞传感器，记录碰撞历史并在HUD显示"""
     def __init__(self, parent_actor, hud):
+t_actor, hud, gamma_correction):
+
         self.sensor = None
         self.history = []  # 碰撞历史（帧号，强度）
         self._parent = parent_actor

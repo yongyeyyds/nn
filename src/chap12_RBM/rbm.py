@@ -1,8 +1,7 @@
 # python: 3.9+
 # encoding: utf-8
 # 导入numpy模块并命名为np
-import numpy as np  # 导入NumPy库用于高效数值计算
-import matplotlib.pyplot as plt
+
 import sys
 
 class RBM:
@@ -62,106 +61,9 @@ class RBM:
         
         for epoch in range(epochs):
             # 打乱数据顺序
-            np.random.shuffle(data_flat)
-            epoch_error = 0.0
-            
-            # 使用小批量梯度下降法
-            for i in range(0, n_samples, batch_size):
-                # 获取当前批次的数据
-                batch = data_flat[i:i + batch_size]
-                batch_size_actual = batch.shape[0]  # 实际批次大小（最后一批可能不同）
-                
-                # 正相传播
-                v0 = batch.astype(np.float64)
-                h0_prob = self._sigmoid(np.dot(v0, self.W) + self.b_h)
-                h0_sample = self._sample_binary(h0_prob)
-                
-                # 负相传播 (CD-k)
-                v_current = v0.copy()
-                h_current = h0_sample.copy()
-                
-                for _ in range(k):
-                    h_prob = self._sigmoid(np.dot(v_current, self.W) + self.b_h)
-                    h_sample = self._sample_binary(h_prob)
-                    v_prob = self._sigmoid(np.dot(h_sample, self.W.T) + self.b_v)
-                    v_current = self._sample_binary(v_prob)
-                
-                h1_prob = self._sigmoid(np.dot(v_current, self.W) + self.b_h)
-                
-                # 计算梯度
-                dW = np.dot(v0.T, h0_prob) - np.dot(v_current.T, h1_prob)
-                db_v = np.sum(v0 - v_current, axis=0)
-                db_h = np.sum(h0_prob - h1_prob, axis=0)
-                
-                # 更新参数
-                self.W += learning_rate * dW / batch_size_actual
-                self.b_v += learning_rate * db_v / batch_size_actual
-                self.b_h += learning_rate * db_h / batch_size_actual
-                
-                # 计算重构误差
-                batch_error = np.mean((v0 - v_current) ** 2)
-                epoch_error += batch_error * batch_size_actual
-            
-            # 打印本轮的平均重构误差
-            print(f"Epoch {epoch+1}/{epochs}, 重构误差: {epoch_error/n_samples:.6f}")
-    
-    def sample(self, n_samples=1, gibbs_steps=1000):
-        """
-        从训练好的模型中采样生成新数据（Gibbs采样）
-        
-        参数:
-        n_samples (int): 生成样本数量
-        gibbs_steps (int): Gibbs采样步数
-        
-        返回:
-        numpy.ndarray: 生成的样本，形状为 (n_samples, 28, 28)
-        """
-        samples = []
-        
-        for _ in range(n_samples):
-            # 初始化可见层
-            v = np.random.binomial(1, 0.5, self.n_observe)
-            
-            # 进行Gibbs采样迭代
-            for _ in range(gibbs_steps):
-                h_prob = self._sigmoid(np.dot(v, self.W) + self.b_h)
-                h_sample = self._sample_binary(h_prob)
-                v_prob = self._sigmoid(np.dot(h_sample, self.W.T) + self.b_v)
-                v = self._sample_binary(v_prob)
-            
-            # 将最终的可见层向量重塑为28×28的图像格式
-            samples.append(v.reshape(28, 28))
-        
-        return np.array(samples)
-    
-    def reconstruct(self, data, gibbs_steps=1):
-        """
-        重构输入数据
-        
-        参数:
-        data (numpy.ndarray): 输入数据，形状为 (n_samples, 28, 28)
-        gibbs_steps (int): Gibbs采样步数
-        
-        返回:
-        numpy.ndarray: 重构的数据，形状为 (n_samples, 28, 28)
-        """
-        data_flat = data.reshape(data.shape[0], -1)
-        reconstructions = []
-        
-        for v in data_flat:
-            # 进行Gibbs采样迭代
-            for _ in range(gibbs_steps):
-                h_prob = self._sigmoid(np.dot(v, self.W) + self.b_h)
-                h_sample = self._sample_binary(h_prob)
-                v_prob = self._sigmoid(np.dot(h_sample, self.W.T) + self.b_v)
-                v = v_prob  # 使用概率而非采样值，得到更平滑的重构
-            
-            # 将重构的可见层向量重塑为28×28的图像格式
-            reconstructions.append(v.reshape(28, 28))
-        
-        return np.array(reconstructions)
 
-# 使用 MNIST 数据集训练 RBM 模型
+
+#  用MNIST 手写数字数据集训练一个（RBM），并从训练好的模型中采样生成一张手写数字图像
 if __name__ == '__main__':
     try:
         # 加载二值化的MNIST数据，形状为 (60000, 28, 28)

@@ -29,7 +29,7 @@ import os,sys,tqdm
 # In[2]:
 
 
-def gen_data_batch(batch_size, start, end):
+def gen_data_batch(batch_size: int, start: int, end: int) -> tuple:
     '''在(start, end)区间采样生成一个batch的整型的数据
     Args :
         batch_size: batch_size
@@ -58,28 +58,14 @@ def convertNum2Digits(Num):
     return digitNums
 
 def convertDigits2Num(Digits):
-    '''将数字位列表转换为整数，例如 [1, 3, 3, 4, 1, 2] ==> 133412
-    Args:
-        Digits: 数字位列表
-    Returns:
-        Num: 转换后的整数
-    '''
+
     digitStrs = [str(o) for o in Digits]
     numStr = ''.join(digitStrs)
     Num = int(numStr)
     return Num
 
 def pad2len(lst, length, pad=0):
-    '''将一个列表用`pad`填充到`length`的长度 
-    例如 pad2len([1, 3, 2, 3], 6, pad=0) ==> [1, 3, 2, 3, 0, 0]
-    Args:
-        lst: 输入列表
-        length: 目标长度
-        pad: 填充值，默认为0
-    Returns:
-        lst: 填充后的列表
-    '''
-    lst += [pad] * (length - len(lst))
+
     return lst
 
 def results_converter(res_lst):
@@ -142,12 +128,7 @@ class myRNNModel(keras.Model):
                                                     batch_input_shape=[None, None])
        
         # 基础RNN单元和RNN层
-        # SimpleRNNCell是最基本的RNN单元，包含64个隐藏神经元
-        self.rnncell = tf.keras.layers.SimpleRNNCell(64)
-        # RNN层包装RNNCell，return_sequences=True表示返回所有时间步的输出
-        self.rnn_layer = tf.keras.layers.RNN(self.rnncell, return_sequences=True)
-        # 全连接层：将RNN输出映射到10个类别（0-9）
-        self.dense = tf.keras.layers.Dense(10)
+
         
     @tf.function
     def call(self, num1, num2):
@@ -170,7 +151,7 @@ class myRNNModel(keras.Model):
         embed2 = self.embed_layer(num2)  # [batch_size, maxlen, embed_dim]
         
         # 将两个输入的嵌入向量相加
-        inputs = embed1 + embed2  # [batch_size, maxlen, embed_dim]
+        inputs = tf.concat([emb1, emb2], axis=-1)  # [batch_size, maxlen, embed_dim]
         
         # 通过RNN层处理
         rnn_out = self.rnn_layer(inputs)  # [batch_size, maxlen, rnn_units]
@@ -230,19 +211,11 @@ def train(steps, model, optimizer):
     """
     loss = 0.0
     for step in range(steps):
-        # 生成训练数据
+
         datas = gen_data_batch(batch_size=200, start=0, end=555555555)
         # 处理数据
         Nums1, Nums2, results = prepare_batch(*datas, maxlen=11)
-        # 执行一步训练
-        loss = train_one_step(model, optimizer, 
-                              tf.constant(Nums1, dtype=tf.int32), 
-                              tf.constant(Nums2, dtype=tf.int32),
-                              tf.constant(results, dtype=tf.int32))
-        
-        # 每50步打印一次损失
-        if step % 50 == 0:
-            print(f'step {step}: loss {loss.numpy()}')
+
 
     return loss
 

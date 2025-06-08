@@ -81,14 +81,11 @@ class CNN(nn.Module):
         # 第二个全连接层：1024维输入，10维输出（对应10个数字类别）
         self.out2 = nn.Linear(1024, 10, bias=True)
 
+    #定义了一个神经网络的前向传播过程，进行特征提取和分类预测
     def forward(self, x):
         x = self.conv1(x)          # 第一卷积层特征提取，输入 -> 卷积 -> 激活 (ReLU由self.conv1定义)
         x = self.conv2(x)          # 第二卷积层特征提取，特征图 -> 卷积 -> 激活
-        x = x.view(x.size(0), -1)  # 展平张量：保留批量维度，合并其他所有维度（准备输入全连接层）
-        out1 = self.out1(x)        # 第一个全连接层 + 激活函数，线性变换: [B, in_features] -> [B, hidden_features]
-        out1 = F.relu(out1)        # 应用ReLU激活函数引入非线性
-        out1 = self.dropout(out1)  # 应用dropout正则化，随机丢弃部分神经元输出
-        out2 = self.out2(out1)     # 第二个全连接层，输出10个类别的原始分数（logits）
+
         return out2
 
 # 测试函数 - 评估模型在测试集上的准确率

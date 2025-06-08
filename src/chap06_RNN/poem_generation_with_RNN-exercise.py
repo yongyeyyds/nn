@@ -200,7 +200,7 @@ def mkMask(input_tensor, maxLen):
     Returns:
         与input_tensor形状相同的布尔掩码，有效位置为True，填充位置为False
     """
-    shape_of_input = tf.shape(input_tensor)  # 获取输入张量的形状
+
     shape_of_output = tf.concat(axis=0, values=[shape_of_input, [maxLen]])
     
     # 使用tf.reshape将input_tensor展平为一维张量oneDtensor
