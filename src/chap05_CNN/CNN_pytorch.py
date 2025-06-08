@@ -12,10 +12,10 @@ import numpy as np
 from torch.autograd import Variable
 
 # 设置超参数
-learning_rate = 1e-4  #  学习率
-keep_prob_rate = 0.7  #  Dropout保留神经元的比例
-max_epoch = 3         # 训练的总轮数
-BATCH_SIZE = 50       # 每批训练数据的大小为50
+learning_rate = 1e-4  # 学习率：控制参数更新的步长
+keep_prob_rate = 0.7  # Dropout保留神经元的比例：防止过拟合，随机丢弃部分神经元
+max_epoch = 3         # 训练的总轮数：整个数据集被遍历的次数
+BATCH_SIZE = 50       # 每批训练数据的大小为50：平衡内存使用和训练速度
 
 # 检查是否需要下载 MNIST 数据集
 DOWNLOAD_MNIST = False
@@ -35,7 +35,7 @@ train_data = torchvision.datasets.MNIST(
 train_loader = Data.DataLoader(
     dataset=train_data,     # 使用的数据集
     batch_size=BATCH_SIZE,  # 每批数据量
-    shuffle=True            # 是否打乱数据
+    shuffle=True            # 是否打乱数据：避免训练过程中的顺序偏差
 )
 
 # 加载测试数据集
@@ -55,18 +55,18 @@ class CNN(nn.Module):
         
         # 第一个卷积层
         self.conv1 = nn.Sequential(
-            nn.Conv2d(1, 32, kernel_size=3, stride=1, padding=1),  # 3x3卷积核
-            nn.BatchNorm2d(32),                                    # 添加批量归一化
+            nn.Conv2d(1, 32, kernel_size=3, stride=1, padding=1),  # 3x3卷积核，输入通道1，输出通道32
+            nn.BatchNorm2d(32),                                    # 添加批量归一化：加速训练，稳定网络
             nn.ReLU(),                                             # ReLU激活函数，引入非线性
-            nn.MaxPool2d(2)                                        # 最大池化，减小特征图尺寸
+            nn.MaxPool2d(2)                                        # 最大池化，减小特征图尺寸（2x2窗口）
         )
         
         # 第二个卷积层
         self.conv2 = nn.Sequential(
-            nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1),  # 3x3卷积核
+            nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1),  # 3x3卷积核，输入通道32，输出通道64
             nn.BatchNorm2d(64),                                     # 添加批量归一化
             nn.ReLU(),
-            nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1),  # 增加一层3x3卷积
+            nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1),  # 增加一层3x3卷积，进一步提取特征
             nn.BatchNorm2d(64),
             nn.ReLU(),
             nn.MaxPool2d(2)                                         # 最大池化，减小特征图尺寸
@@ -84,11 +84,11 @@ class CNN(nn.Module):
     def forward(self, x):
         x = self.conv1(x)          # 第一卷积层特征提取，输入 -> 卷积 -> 激活 (ReLU由self.conv1定义)
         x = self.conv2(x)          # 第二卷积层特征提取，特征图 -> 卷积 -> 激活
-        x = x.view(x.size(0), -1)
+        x = x.view(x.size(0), -1)  # 展平张量：保留批量维度，合并其他所有维度（准备输入全连接层）
         out1 = self.out1(x)        # 第一个全连接层 + 激活函数，线性变换: [B, in_features] -> [B, hidden_features]
         out1 = F.relu(out1)        # 应用ReLU激活函数引入非线性
-        out1 = self.dropout(out1)
-        out2 = self.out2(out1)
+        out1 = self.dropout(out1)  # 应用dropout正则化，随机丢弃部分神经元输出
+        out2 = self.out2(out1)     # 第二个全连接层，输出10个类别的原始分数（logits）
         return out2
 
 # 测试函数 - 评估模型在测试集上的准确率
@@ -120,9 +120,9 @@ def test(cnn):
 
 # 训练函数
 def train(cnn):
-    # 使用Adam优化器，学习率为learning_rate
+    # 使用Adam优化器，学习率为learning_rate：自适应学习率优化算法
     optimizer = torch.optim.Adam(cnn.parameters(), lr=learning_rate)
-    # 使用交叉熵损失函数
+    # 使用交叉熵损失函数：适用于多分类问题
     loss_func = nn.CrossEntropyLoss()
 
     # 训练max_epoch轮
@@ -132,14 +132,15 @@ def train(cnn):
             # 将数据转换为Variable（自动求导需要）
             x, y = Variable(x_), Variable(y_)
             output = cnn(x)                         # 前向传播得到预测结果
-            loss = loss_func(output, y)             # 计算损失
+            loss = loss_func(output, y)             # 计算损失：衡量预测值与真实值的差异
             optimizer.zero_grad(set_to_none=True)   # 清空模型参数的梯度缓存，set_to_none=True可减少内存占用
             loss.backward()                         # 反向传播计算梯度
-            optimizer.step()                        # 更新参数
+            optimizer.step()                        # 更新参数：根据梯度调整模型参数
 
             # 每20个batch打印一次测试准确率
             if step != 0 and step % 20 == 0:
                 print("=" * 10, step, "=" * 5, "=" * 5, "测试准确率: ", test(cnn), "=" * 10)
+
 # 主程序入口
 if __name__ == '__main__':
     cnn = CNN()  # 创建CNN实例
