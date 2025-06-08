@@ -93,15 +93,16 @@ class GaussianMixtureModel:
         tol: float, 收敛阈值 (默认=1e-6)
         random_state: int, 随机种子 (可选)
     """
-    def __init__(self, n_components=3, max_iter=100, tol=1e-6):
+    def __init__(self, n_components=3, max_iter=100, tol=1e-6, random_state=None):
         
         # 初始化模型参数
         self.n_components = n_components  # 高斯分布数量
         self.max_iter = max_iter          # EM算法最大迭代次数
         self.tol = tol                    # 收敛阈值
-        self.log_likelihoods = []  # 新增：存储每轮迭代的对数似然值
-
-    # 初始化随机数生成器
+        self.log_likelihoods = []  # 存储每轮迭代的对数似然值
+        self.random_state = random_state  # 随机种子
+        
+        # 初始化随机数生成器
         self.rng = np.random.default_rng(random_state)
 
     def fit(self, X):
@@ -118,7 +119,7 @@ class GaussianMixtureModel:
         self.pi = np.ones(self.n_components) / self.n_components
         
         # 随机选择样本点作为初始均值
-        self.mu = X[np.random.choice(n_samples, self.n_components, replace=False)]
+        self.mu = X[self.rng.choice(n_samples, self.n_components, replace=False)]
         
         # 初始化协方差矩阵为单位矩阵
         self.sigma = np.array([np.eye(n_features) for _ in range(self.n_components)])
@@ -238,6 +239,51 @@ class GaussianMixtureModel:
         plt.title('EM算法收敛曲线')
         plt.grid(True)  # 启用网格线，增强可读性
         plt.show()
+    
+    def predict(self, X):
+        """对新数据进行聚类预测
+        
+        参数:
+            X: array-like, shape=(n_samples, n_features)
+               待预测的数据
+               
+        返回:
+            labels: array, shape=(n_samples,)
+                聚类标签
+        """
+        X = np.asarray(X)
+        n_samples = X.shape[0]
+        
+        # 计算每个样本属于各个高斯成分的对数概率
+        log_prob = np.zeros((n_samples, self.n_components))
+        for k in range(self.n_components):
+            log_prob[:, k] = np.log(self.pi[k]) + self._log_gaussian(X, self.mu[k], self.sigma[k])
+        
+        # 选择概率最大的成分为预测结果
+        return np.argmax(log_prob, axis=1)
+    
+    def predict_proba(self, X):
+        """计算样本属于各个高斯成分的概率
+        
+        参数:
+            X: array-like, shape=(n_samples, n_features)
+               待预测的数据
+               
+        返回:
+            probs: array, shape=(n_samples, n_components)
+                样本属于各个成分的概率
+        """
+        X = np.asarray(X)
+        n_samples = X.shape[0]
+        
+        # 计算对数概率
+        log_prob = np.zeros((n_samples, self.n_components))
+        for k in range(self.n_components):
+            log_prob[:, k] = np.log(self.pi[k]) + self._log_gaussian(X, self.mu[k], self.sigma[k])
+        
+        # 使用logsumexp进行归一化
+        log_prob_sum = logsumexp(log_prob, axis=1, keepdims=True)
+        return np.exp(log_prob - log_prob_sum)
 
 # 主程序
 if __name__ == "__main__":
@@ -245,7 +291,7 @@ if __name__ == "__main__":
     X, y_true = generate_data()
     
     # 训练GMM模型
-    gmm = GaussianMixtureModel(n_components=3)  # 创建GMM实例，指定聚类数为3
+    gmm = GaussianMixtureModel(n_components=3, random_state=42)  # 创建GMM实例，指定聚类数为3
     gmm.fit(X)  # 用数据X训练模型
     y_pred = gmm.labels_  # 获取每个样本的聚类标签
     
@@ -253,20 +299,31 @@ if __name__ == "__main__":
     gmm.plot_convergence()
     
     # 可视化结果
-    plt.figure(figsize=(12, 5))
+    plt.figure(figsize=(16, 5))
     
     # 左图：真实聚类结果
-    plt.subplot(1, 2, 1)
+    plt.subplot(1, 3, 1)
     plt.scatter(X[:, 0], X[:, 1], c=y_true, cmap='viridis', s=10)
     plt.title("真实聚类")
     plt.xlabel("特征1")
     plt.ylabel("特征2")
     plt.grid(True, linestyle='--', alpha=0.7)
     
-    # 右图：GMM预测的聚类结果
-    plt.subplot(1, 2, 2)
+    # 中图：GMM预测的聚类结果
+    plt.subplot(1, 3, 2)
     plt.scatter(X[:, 0], X[:, 1], c=y_pred, cmap='viridis', s=10)
     plt.title("GMM预测的聚类")
+    plt.xlabel("特征1")
+    plt.ylabel("特征2")
+    plt.grid(True, linestyle='--', alpha=0.7)
+    
+    # 右图：GMM预测的概率热力图
+    plt.subplot(1, 3, 3)
+    probs = gmm.predict_proba(X)
+    max_probs = np.max(probs, axis=1)
+    scatter = plt.scatter(X[:, 0], X[:, 1], c=max_probs, cmap='plasma', s=10)
+    plt.colorbar(scatter, label='最大概率')
+    plt.title("聚类置信度热力图")
     plt.xlabel("特征1")
     plt.ylabel("特征2")
     plt.grid(True, linestyle='--', alpha=0.7)
