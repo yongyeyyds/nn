@@ -161,16 +161,17 @@ print("训练集预测值与真实值的标准差：{:.1f}".format(std))
 
 y_test_preds = predict(model, xs_test)
 std = evaluate(ys_test, y_test_preds)
-print("训练集预测值与真实值的标准差：{:.1f}".format(std))
+print("测试集预测值与真实值的标准差：{:.1f}".format(std))  # 修正输出标签
 
-plt.plot(o_x, o_y, "ro", markersize=3)
-plt.plot(o_x_test, y_test_preds, "k")
+plt.plot(o_x, o_y, "ro", markersize=3)  # 绘制训练数据点（红色圆点）
+plt.plot(o_x_test, y_test_preds, "k-", linewidth=2)  # 绘制测试数据的预测曲线（黑色实线）
 # 设置x、y轴标签
 plt.xlabel("x")
 plt.ylabel("y")
 plt.title("Linear Regression") # 图表标题
-# 虚线网格，半透明灰色
+# 添加虚线网格，增强可读性
 plt.grid(True, linestyle="--", alpha=0.7, color="gray")
-plt.legend(["train", "test", "pred"]) # 添加图例，元素依次对应
+# 添加图例，明确各曲线含义
+plt.legend(["训练数据", "测试预测"]) 
 plt.tight_layout()  # 自动调整布局
 plt.show()
