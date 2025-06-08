@@ -133,16 +133,70 @@ def test(model, x, y):
 # In[14]:
 # 加载MNIST数据集
 train_data, test_data = mnist_dataset()
-# 进行50个epoch的训练
-for epoch in range(50):
-    # 执行一次训练步骤，传入模型、优化器、训练数据及标签
-    loss, accuracy = train_one_step(model, optimizer, 
-                                    tf.constant(train_data[0], dtype = tf.float32),  # 训练图像数据
-                                    tf.constant(train_data[1], dtype = tf.int64))    # 训练标签数据
-    print('epoch', epoch, ': loss', loss.numpy(), '; accuracy', accuracy.numpy())
-# 在测试集上测试模型
-loss, accuracy = test(model, 
-                      tf.constant(test_data[0], dtype = tf.float32),  # 将测试特征数据转换为TensorFlow常量张量，数据类型为float32
-                      tf.constant(test_data[1], dtype = tf.int64))    # 将测试标签数据转换为TensorFlow常量张量，数据类型为int64
-# 打印测试集上的最终损失和准确率
-print('test loss', loss.numpy(), '; accuracy', accuracy.numpy())
+
+# 设置训练参数
+batch_size = 128
+epochs = 50
+train_size = train_data[0].shape[0]
+test_size = test_data[0].shape[0]
+
+# 创建训练数据集的索引
+train_indices = np.arange(train_size)
+
+for epoch in range(epochs):
+    # 打乱训练数据索引
+    np.random.shuffle(train_indices)
+    
+    # 小批量训练
+    epoch_loss = 0.0
+    epoch_accuracy = 0.0
+    batches = 0
+    
+    for i in range(0, train_size, batch_size):
+        # 获取当前批次的索引
+        batch_indices = train_indices[i:i+batch_size]
+        
+        # 获取批次数据
+        batch_x = tf.constant(train_data[0][batch_indices], dtype=tf.float32)
+        batch_y = tf.constant(train_data[1][batch_indices], dtype=tf.int64)
+        
+        # 执行一次训练步骤
+        loss, accuracy = train_one_step(model, optimizer, batch_x, batch_y)
+        
+        # 累加统计信息
+        epoch_loss += loss.numpy()
+        epoch_accuracy += accuracy.numpy()
+        batches += 1
+    
+    # 计算平均损失和准确率
+    epoch_loss /= batches
+    epoch_accuracy /= batches
+    
+    # 在测试集上进行评估
+    test_loss = 0.0
+    test_accuracy = 0.0
+    test_batches = 0
+    
+    for i in range(0, test_size, batch_size):
+        batch_x = tf.constant(test_data[0][i:i+batch_size], dtype=tf.float32)
+        batch_y = tf.constant(test_data[1][i:i+batch_size], dtype=tf.int64)
+        
+        loss, accuracy = test(model, batch_x, batch_y)
+        test_loss += loss.numpy()
+        test_accuracy += accuracy.numpy()
+        test_batches += 1
+    
+    test_loss /= test_batches
+    test_accuracy /= test_batches
+    
+    # 打印训练进度
+    print(f'Epoch {epoch+1}/{epochs}, Train Loss: {epoch_loss:.4f}, Train Accuracy: {epoch_accuracy:.4f}, Test Loss: {test_loss:.4f}, Test Accuracy: {test_accuracy:.4f}')
+
+# 在整个测试集上进行最终评估
+final_loss, final_accuracy = test(
+    model, 
+    tf.constant(test_data[0], dtype=tf.float32),
+    tf.constant(test_data[1], dtype=tf.int64)
+)
+
+print(f'Final Test Loss: {final_loss.numpy():.4f}, Final Test Accuracy: {final_accuracy.numpy():.4f}')
