@@ -161,129 +161,125 @@ class Log:
 
 # In[5]:
 
-# import tensorflow as tf
+# 梯度验证函数
+def gradient_check():
+    # 验证 Matmul 层
+    print("验证 Matmul 层梯度计算:")
+    x = np.random.normal(size=[5, 6])
+    W = np.random.normal(size=[6, 4])
+    matmul = Matmul()
+    out = matmul.forward(x, W)  # shape(5, 4)
+    grad_x, grad_W = matmul.backward(np.ones_like(out))
+    
+    with tf.GradientTape() as tape:
+        x_tf, W_tf = tf.constant(x), tf.constant(W)
+        tape.watch(x_tf)
+        tape.watch(W_tf)
+        y_tf = tf.matmul(x_tf, W_tf)
+        loss_tf = tf.reduce_sum(y_tf)
+        grads_tf = tape.gradient(loss_tf, [x_tf, W_tf])
+    
+    print("手动计算的 grad_x 与 TensorFlow 计算的是否一致:", np.allclose(grad_x, grads_tf[0].numpy()))
+    print("手动计算的 grad_W 与 TensorFlow 计算的是否一致:", np.allclose(grad_W, grads_tf[1].numpy()))
+    
+    # 验证 Relu 层
+    print("\n验证 Relu 层梯度计算:")
+    x = np.random.normal(size=[5, 6])
+    relu = Relu()
+    out = relu.forward(x)
+    grad_x = relu.backward(np.ones_like(out))
+    
+    with tf.GradientTape() as tape:
+        x_tf = tf.constant(x)
+        tape.watch(x_tf)
+        y_tf = tf.nn.relu(x_tf)
+        loss_tf = tf.reduce_sum(y_tf)
+        grads_tf = tape.gradient(loss_tf, x_tf)
+    
+    print("手动计算的 grad_x 与 TensorFlow 计算的是否一致:", np.allclose(grad_x, grads_tf.numpy()))
+    
+    # 验证 Softmax + Log 层（等价于 TensorFlow 的 softmax_cross_entropy_with_logits）
+    print("\n验证 Softmax + Log 层梯度计算:")
+    x = np.random.normal(size=[5, 6], scale=5.0, loc=1)
+    label = np.zeros_like(x)
+    label[0, 1] = 1.
+    label[1, 0] = 1
+    label[1, 1] = 1
+    label[2, 3] = 1
+    label[3, 5] = 1
+    label[4, 0] = 1
+    
+    softmax = Softmax()
+    log = Log()
+    
+    # 前向传播
+    soft_out = softmax.forward(x)
+    log_out = log.forward(soft_out)
+    
+    # 反向传播
+    log_grad = log.backward(-label)  # 注意这里的负号，对应交叉熵损失的梯度
+    soft_grad = softmax.backward(log_grad)
+    
+    with tf.GradientTape() as tape:
+        x_tf = tf.constant(x)
+        tape.watch(x_tf)
+        # 使用 TensorFlow 的 softmax_cross_entropy_with_logits
+        loss_tf = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits(logits=x_tf, labels=label))
+        grads_tf = tape.gradient(loss_tf, x_tf)
+    
+    print("手动计算的梯度与 TensorFlow 计算的是否一致:", np.allclose(soft_grad, grads_tf.numpy()))
 
-# x = np.random.normal(size=[5, 6])
-# W = np.random.normal(size=[6, 4])
-# aa = Matmul()
-# out = aa.forward(x, W)  # shape(5, 4)
-# grad = aa.backward(np.ones_like(out))
-# print(grad)
 
-# with tf.GradientTape() as tape:
-#     x, W = tf.constant(x), tf.constant(W)
-#     tape.watch(x)
-#     y = tf.matmul(x, W)
-#     loss = tf.reduce_sum(y)
-#     grads = tape.gradient(loss, x)
-#     print(grads)
-
-# import tensorflow as tf
-
-# x = np.random.normal(size=[5, 6])
-# aa = Relu()
-# out = aa.forward(x)  # shape(5, 4)
-# grad = aa.backward(np.ones_like(out))
-# print(grad)
-
-# with tf.GradientTape() as tape:
-#     x = tf.constant(x)
-#     tape.watch(x)
-#     y = tf.nn.relu(x)
-#     loss = tf.reduce_sum(y)
-#     grads = tape.gradient(loss, x)
-#     print(grads)
-
-# import tensorflow as tf
-# x = np.random.normal(size=[5, 6], scale=5.0, loc=1)
-# label = np.zeros_like(x)
-# label[0, 1] = 1.
-# label[1, 0] = 1
-# label[1, 1] = 1
-# label[2, 3] = 1
-# label[3, 5] = 1
-# label[4, 0] = 1
-# print(label)
-# aa = Softmax()
-# out = aa.forward(x)  # shape(5, 6)
-# grad = aa.backward(label)
-# print(grad)
-
-# with tf.GradientTape() as tape:
-#     x = tf.constant(x)
-#     tape.watch(x)
-#     y = tf.nn.softmax(x)
-#     loss = tf.reduce_sum(y * label)
-#     grads = tape.gradient(loss, x)
-#     print(grads)
-
-# import tensorflow as tf
-
-# x = np.random.normal(size=[5, 6])
-# aa = Log()
-# out = aa.forward(x)  # shape(5, 4)
-# grad = aa.backward(label)
-# print(grad)
-
-# with tf.GradientTape() as tape:
-#     x = tf.constant(x)
-#     tape.watch(x)
-#     y = tf.math.log(x)
-#     loss = tf.reduce_sum(y * label)
-#     grads = tape.gradient(loss, x)
-#     print(grads)
-
-# # Final Gradient Check
-
+# 最终梯度验证
 # In[6]:
 
-x = np.random.normal(size=[5, 6])   # 示例：生成 5 个样本，每个样本 6 维特征
-label = np.zeros_like(x)            # 创建了一个与 x 形状相同的全零标签矩阵
-label[0, 1] = 1.
-label[1, 0] = 1
-label[2, 3] = 1
-label[3, 5] = 1
-label[4, 0] = 1
+def final_gradient_check():
+    x = np.random.normal(size=[5, 6])   # 示例：生成 5 个样本，每个样本 6 维特征
+    label = np.zeros_like(x)            # 创建了一个与 x 形状相同的全零标签矩阵
+    label[0, 1] = 1.
+    label[1, 0] = 1
+    label[2, 3] = 1
+    label[3, 5] = 1
+    label[4, 0] = 1
 
-x = np.random.normal(size=[5, 6])   # 5 个样本，每个样本 6 维特征
-W1 = np.random.normal(size=[6, 5])  # 第一层权重 (6→5)
-W2 = np.random.normal(size=[5, 6])  # 第二层权重 (5→6)
+    W1 = np.random.normal(size=[6, 5])  # 第一层权重 (6→5)
+    W2 = np.random.normal(size=[5, 6])  # 第二层权重 (5→6)
 
-mul_h1 = Matmul()                   # 第一层矩阵乘法
-mul_h2 = Matmul()                   # 第二层矩阵乘法
-relu = Relu()                       # ReLU 激活函数
-softmax = Softmax()
-log = Log()                         # 对数函数
-# 手动实现的前向传播过程：
-h1 = mul_h1.forward(x, W1)  # shape(5, 4)
-h1_relu = relu.forward(h1)
-h2 = mul_h2.forward(h1_relu, W2)
-h2_soft = softmax.forward(h2)
-h2_log = log.forward(h2_soft)
-# 手动实现的反向传播过程（计算梯度）：
-h2_log_grad = log.backward(-label)
-h2_soft_grad = softmax.backward(h2_log_grad)
-h2_grad, W2_grad = mul_h2.backward(h2_soft_grad)
-h1_relu_grad = relu.backward(h2_grad)
-h1_grad, W1_grad = mul_h1.backward(h1_relu_grad)
+    mul_h1 = Matmul()                   # 第一层矩阵乘法
+    mul_h2 = Matmul()                   # 第二层矩阵乘法
+    relu = Relu()                       # ReLU 激活函数
+    softmax = Softmax()
+    log = Log()                         # 对数函数
+    
+    # 手动实现的前向传播过程：
+    h1 = mul_h1.forward(x, W1)  # shape(5, 5)
+    h1_relu = relu.forward(h1)
+    h2 = mul_h2.forward(h1_relu, W2)  # shape(5, 6)
+    h2_soft = softmax.forward(h2)
+    h2_log = log.forward(h2_soft)
+    
+    # 手动实现的反向传播过程（计算梯度）：
+    h2_log_grad = log.backward(-label)
+    h2_soft_grad = softmax.backward(h2_log_grad)
+    h2_grad, W2_grad = mul_h2.backward(h2_soft_grad)
+    h1_relu_grad = relu.backward(h2_grad)
+    h1_grad, W1_grad = mul_h1.backward(h1_relu_grad)
 
-print(h2_log_grad)
-print('--' * 20)
-# print(W2_grad)
-# 使用 TensorFlow 自动微分验证梯度
-with tf.GradientTape() as tape:
-    # 将数据转换为 TensorFlow 常量
-    x, W1, W2, label = tf.constant(x), tf.constant(W1), tf.constant(W2), tf.constant(label)
-    tape.watch(W1)        # 追踪 W1 的梯度
-    tape.watch(W2)        # 追踪 W2 的梯度
-    h1 = tf.matmul(x, W1)
-    h1_relu = tf.nn.relu(h1)
-    h2 = tf.matmul(h1_relu, W2)
-    prob = tf.nn.softmax(h2)
-    log_prob = tf.math.log(prob)
-    loss = tf.reduce_sum(label * log_prob)
-    grads = tape.gradient(loss, [prob])
-    print(grads[0].numpy())
+    # 使用 TensorFlow 自动微分验证梯度
+    with tf.GradientTape() as tape:
+        # 将数据转换为 TensorFlow 常量
+        x_tf, W1_tf, W2_tf, label_tf = tf.constant(x), tf.constant(W1), tf.constant(W2), tf.constant(label)
+        tape.watch(W1_tf)        # 追踪 W1 的梯度
+        tape.watch(W2_tf)        # 追踪 W2 的梯度
+        h1_tf = tf.matmul(x_tf, W1_tf)
+        h1_relu_tf = tf.nn.relu(h1_tf)
+        h2_tf = tf.matmul(h1_relu_tf, W2_tf)
+        # 使用 TensorFlow 的 softmax_cross_entropy_with_logits 直接计算损失
+        loss_tf = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits(logits=h2_tf, labels=label_tf))
+        grads_tf = tape.gradient(loss_tf, [W1_tf, W2_tf])
+    
+    print("\n最终梯度验证 - W1 梯度是否一致:", np.allclose(W1_grad, grads_tf[0].numpy()))
+    print("最终梯度验证 - W2 梯度是否一致:", np.allclose(W2_grad, grads_tf[1].numpy()))
 
 
 # ## 建立模型
@@ -292,8 +288,12 @@ with tf.GradientTape() as tape:
 
 class myModel:
     def __init__(self):# 初始化模型参数，使用随机正态分布初始化权重矩阵
-        self.W1 = np.random.normal(size=[28 * 28 + 1, 100])  # 输入层到隐藏层，增加偏置项，W1: 连接输入层(784+1)和隐藏层(100)的权重矩阵
-        self.W2 = np.random.normal(size=[100, 10])           # 输入层到隐藏层，增加偏置项，W2: 连接隐藏层(100)和输出层(10)的权重矩阵
+        # 输入层到隐藏层，增加偏置项
+        # W1: 连接输入层(784+1)和隐藏层(100)的权重矩阵
+        self.W1 = np.random.normal(size=[28 * 28 + 1, 100], scale=0.01)  
+        # 隐藏层到输出层
+        # W2: 连接隐藏层(100)和输出层(10)的权重矩阵
+        self.W2 = np.random.normal(size=[100, 10], scale=0.01)           
         # 初始化各层操作对象
         self.mul_h1 = Matmul()      # 第一个矩阵乘法层(输入到隐藏层)
         self.mul_h2 = Matmul()      # 第二个矩阵乘法层(隐藏层到输出层)
@@ -313,6 +313,7 @@ class myModel:
         self.h2 = self.mul_h2.forward(self.h1_relu, self.W2)  # 线性变换
         self.h2_soft = self.softmax.forward(self.h2)          # 应用Softmax函数，得到概率分布
         self.h2_log = self.log.forward(self.h2_soft)          # 计算对数概率
+        return self.h2_log
 
     def backward(self, label):
         # 第二层梯度计算
@@ -322,9 +323,6 @@ class myModel:
         # 第一层梯度计算
         self.h1_relu_grad = self.relu.backward(self.h2_grad)                 # ReLU层梯度
         self.h1_grad, self.W1_grad = self.mul_h1.backward(self.h1_relu_grad) # 计算W1梯度
-
-
-model = myModel()
 
 
 # ## 计算 loss
@@ -342,14 +340,14 @@ def compute_accuracy(log_prob, labels):
 
 
 # 单步训练函数
-def train_one_step(model, x, y):
+def train_one_step(model, x, y, learning_rate=1e-5):
     # 前向传播：计算模型的输出
     model.forward(x)
     # 反向传播：计算梯度
     model.backward(y)
-    # 使用梯度下降法更新权重，学习率为 1e-5
-    model.W1 -= 1e-5 * model.W1_grad
-    model.W2 -= 1e-5 * model.W2_grad
+    # 使用梯度下降法更新权重
+    model.W1 -= learning_rate * model.W1_grad
+    model.W2 -= learning_rate * model.W2_grad
     # 计算损失值
     loss = compute_loss(model.h2_log, y)
     # 计算准确率
@@ -378,9 +376,11 @@ def prepare_data():
     return train_data[0], train_label, test_data[0], test_label
 
 
-def train(model, train_data, train_label, epochs=50, batch_size=128):
+def train(model, train_data, train_label, test_data, test_label, epochs=50, batch_size=128, learning_rate=1e-5):
     losses = []
     accuracies = []
+    test_losses = []
+    test_accuracies = []
     num_samples = train_data.shape[0]
 
     for epoch in tqdm(range(epochs), desc="Training"):
@@ -397,7 +397,7 @@ def train(model, train_data, train_label, epochs=50, batch_size=128):
             batch_data = shuffled_data[i:i + batch_size]
             batch_labels = shuffled_labels[i:i + batch_size]
             # 执行单步训练
-            loss, accuracy = train_one_step(model, batch_data, batch_labels)
+            loss, accuracy = train_one_step(model, batch_data, batch_labels, learning_rate)
             # 累计统计量
             epoch_loss += loss * batch_data.shape[0]
             epoch_accuracy += accuracy * batch_data.shape[0]
@@ -407,13 +407,32 @@ def train(model, train_data, train_label, epochs=50, batch_size=128):
         epoch_accuracy /= num_samples
         losses.append(epoch_loss)
         accuracies.append(epoch_accuracy)
-        print(f'Epoch {epoch}: Loss {epoch_loss:.4f}; Accuracy {epoch_accuracy:.4f}')
-    return losses, accuracies
+        
+        # 评估测试集
+        test_loss, test_accuracy = test(model, test_data, test_label)
+        test_losses.append(test_loss)
+        test_accuracies.append(test_accuracy)
+        
+        print(f'Epoch {epoch}: Train Loss {epoch_loss:.4f}; Train Accuracy {epoch_accuracy:.4f}; Test Loss {test_loss:.4f}; Test Accuracy {test_accuracy:.4f}')
+    
+    return losses, accuracies, test_losses, test_accuracies
 
 
 if __name__ == "__main__":
+    # 运行梯度验证
+    gradient_check()
+    final_gradient_check()
+    
+    # 准备数据
     train_data, train_label, test_data, test_label = prepare_data()
+    
+    # 训练模型
     model = myModel()
-    losses, accuracies = train(model, train_data, train_label)
+    losses, accuracies, test_losses, test_accuracies = train(
+        model, train_data, train_label, test_data, test_label, 
+        epochs=50, batch_size=128, learning_rate=1e-5
+    )
+    
+    # 最终测试评估
     test_loss, test_accuracy = test(model, test_data, test_label)
-    print(f'Test Loss {test_loss:.4f}; Test Accuracy {test_accuracy:.4f}')
+    print(f'Final Test Loss {test_loss:.4f}; Final Test Accuracy {test_accuracy:.4f}')
