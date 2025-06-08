@@ -20,6 +20,8 @@ def softmax(x: tf.Tensor) -> tf.Tensor:
     x = tf.cast(x, tf.float32) # 统一为float32类型，确保计算精度
 
     # 数值稳定性处理：减去最大值避免指数爆炸
+    # 数学原理：softmax(x) = softmax(x + c)，其中c为任意常数
+    # 通过减去每行的最大值，确保指数运算的输入值≤0，防止e^x溢出
     max_per_row = tf.reduce_max(x, axis=-1, keepdims=True)
     # 平移后的logits：每行最大值变为0，其他值为负数
     shifted_logits = x - max_per_row
@@ -29,6 +31,7 @@ def softmax(x: tf.Tensor) -> tf.Tensor:
     # tf.exp计算每个元素的指数值，使所有值为正数
     exp_logits = tf.exp(shifted_logits)
     
+    # 对每行进行归一化，确保所有概率和为1
     sum_exp = tf.reduce_sum(exp_logits, axis=-1, keepdims=True)
     return exp_logits / sum_exp
 
@@ -45,6 +48,7 @@ def sigmoid(x):
     # 将输入x转换为float32类型，确保数值计算的精度和类型一致性。
     x = tf.cast(x, tf.float32)
     # sigmoid 数学定义：1 / (1 + e^{-x})
+    # 将实数域的输入映射到(0,1)区间，可用于二分类问题的概率估计
     prob_x = 1 / (1 + tf.exp(-x))           
     
     return prob_x
@@ -70,7 +74,8 @@ def softmax_ce(logits, label):
     # 计算Softmax概率
     exp_logits = tf.exp(stable_logits)
     prob = exp_logits / tf.reduce_sum(exp_logits, axis=-1, keepdims=True)
-    # 计算交叉熵
+    # 计算交叉熵：H(p,q) = -Σ p(x)log(q(x))
+    # 对于one-hot标签，只需要计算真实类别对应的log概率
     loss = -tf.reduce_mean(tf.reduce_sum(label * tf.math.log(prob + epsilon), axis=1))
     ##########
     return loss
@@ -98,11 +103,13 @@ def sigmoid_ce(logits, labels):
     labels = tf.cast(labels, tf.float32)
     
     # 通过更稳定的方式实现 sigmoid 交叉熵：
+    # 原始公式：-labels*log(sigmoid(logits)) - (1-labels)*log(1-sigmoid(logits))
+    # 数值稳定版本：max(logits,0) - logits*labels + log(1 + exp(-|logits|))
     # 添加epsilon提高数值稳定性
     epsilon = 1e-7
     loss = tf.reduce_mean(
         tf.nn.relu(logits) - logits * labels + 
-        tf.math.log(1 + tf.exp(-tf.abs(logits)) + epsilon
+        tf.math.log(1 + tf.exp(-tf.abs(logits)) + epsilon)
     )
     
     return loss
