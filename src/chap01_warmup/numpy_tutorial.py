@@ -232,12 +232,12 @@ plt.title("Sine and Cosine Functions")
 plt.xlabel("x")  # 设置图像中 x 轴的标签为 "x"
 plt.ylabel("y")  # 设置图像中 y 轴的标签为 "y"
 
-# 添加网格线
+# 添加网格线，便于观察函数值
 plt.grid(True)
 
 # 显示图例
-plt.legend()
-plt.tight_layout()
+plt.legend() # 显示图例，区分正弦和余弦曲线
+plt.tight_layout()  # 自动调整子图参数，使之填充整个图像区域
 
 # 显示图像
 plt.show()
