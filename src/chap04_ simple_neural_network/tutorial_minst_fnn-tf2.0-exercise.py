@@ -164,6 +164,7 @@ for epoch in range(50):
         tf.constant(train_data[0], dtype=tf.float32),  # 训练图像数据
         tf.constant(train_data[1], dtype=tf.int64)     # 训练标签数据
     )
+    # 打印每个epoch的训练损失和准确率
     print('epoch', epoch, ': loss', loss.numpy(), '; accuracy', accuracy.numpy())
 
 # 在测试集上评估模型性能
@@ -173,4 +174,5 @@ loss, accuracy = test(
     tf.constant(test_data[1], dtype=tf.int64)
 )
 
+# 打印测试集上的损失和准确率
 print('test loss', loss.numpy(), '; accuracy', accuracy.numpy())
