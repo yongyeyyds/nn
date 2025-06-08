@@ -204,9 +204,9 @@ def main(x_train, y_train, use_gradient_descent=False):
     basis_func = identity_basis  
 
     # 生成偏置项和特征矩阵
-    phi0 = np.expand_dims(np.ones_like(x_train), axis=1)
-    phi1 = basis_func(x_train)
-    phi = np.concatenate([phi0, phi1], axis=1)
+    phi0 = np.expand_dims(np.ones_like(x_train), axis=1)  # 偏置项（全1向量）
+    phi1 = basis_func(x_train)  # 特征矩阵
+    phi = np.concatenate([phi0, phi1], axis=1)  # 合并偏置项和特征矩阵
 
     # 最小二乘法求解权重
     w_lsq = np.dot(np.linalg.pinv(phi), y_train)
@@ -223,7 +223,7 @@ def main(x_train, y_train, use_gradient_descent=False):
         # 开始梯度下降的迭代循环，将进行epochs次参数更新。
         for epoch in range(epochs):     # 梯度下降循环
             y_pred = np.dot(phi, w_gd)  # 计算预测值
-            error = y_pred - y_train    # 计算误差
+            error = y_pred - y_train    # 计算误差（注意这里使用 y_pred - y_train，与gradient_descent函数中的顺序相反） **[新增注释]**
             gradient = np.dot(phi.T, error) / len(y_train) # 计算梯度
             w_gd -= learning_rate * gradient # 更新权重
 
@@ -253,7 +253,7 @@ def main(x_train, y_train, use_gradient_descent=False):
 
 def evaluate(ys, ys_pred):
     """评估模型。"""
-    # 计算预测值与真实值的标准差
+    # 计算预测值与真实值的标准差（均方根误差RMSE）
     std = np.sqrt(np.mean(np.abs(ys - ys_pred) ** 2))
     return std
 
@@ -290,12 +290,14 @@ if __name__ == "__main__":
     print("预测值与真实值的标准差：{:.1f}".format(std))
 
     # 显示结果
-
-    plt.plot(x_train, y_train, "ro", markersize=3)  #  红色点为训练集数据
-    plt.plot(x_test, y_test, "k")  # 红色点为训练集数据
-    plt.plot(x_test, y_test_pred, "k")  # 黑线为预测值（可以用其他颜色区分）
+    plt.figure(figsize=(10, 6))  # 创建图表，设置大小 **[新增注释]**
+    plt.plot(x_train, y_train, "ro", markersize=3)  # 红色点为训练集数据
+    plt.plot(x_test, y_test, "k-", linewidth=2)  # 黑色实线为真实测试数据 **[新增注释]**
+    plt.plot(x_test, y_test_pred, "g--", linewidth=2)  # 绿色虚线为预测结果 **[新增注释]**
     plt.xlabel("x")  # 设置x轴的标签
     plt.ylabel("y")  # 设置y轴的标签
     plt.title("Linear Regression")  # 设置图表标题
-    plt.legend(["train", "test", "pred"])  # 添加图例，表示每条线的含义
+    plt.legend(["Train Data", "True Test", "Prediction"])  # 添加图例，表示每条线的含义 **[新增注释]**
+    plt.grid(True, alpha=0.3)  # 添加网格线，增强可读性 **[新增注释]**
+    plt.tight_layout()  # 自动调整布局，确保所有元素都显示完整 **[新增注释]**
     plt.show()  # 显示图表
